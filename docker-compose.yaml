@@ -1,0 +1,56 @@
+version: '3.4'
+
+services:
+    php:
+        build:
+            context: ./docker
+        container_name: symfony_skeleton_fpm
+        depends_on:
+        - postgres
+        env_file:
+        - ./symfony/.env
+        volumes:
+        - ./symfony:/srv/symfony:rw,cached
+        environment:
+            XDEBUG_CONFIG: "remote_host=docker.for.mac.localhost idekey=phpstorm"
+            BLACKFIRE_CLIENT_ID: ${BLACKFIRE_CLIENT_ID}
+            BLACKFIRE_CLIENT_TOKEN: ${BLACKFIRE_CLIENT_TOKEN}
+
+    symfony:
+        build:
+            context: ./docker
+            dockerfile: Dockerfile.nginx
+        container_name: symfony_skeleton_nginx
+        depends_on:
+        - php
+        ports:
+        - "8080:80"
+        volumes:
+        - ./symfony/public:/srv/symfony/public:ro
+
+    postgres:
+        image: postgres:9.6-alpine
+        container_name: postgres
+        environment:
+        - POSTGRES_DB=${POSTGRES_DB}
+        - POSTGRES_USER=${POSTGRES_USER}
+        - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+        - PGDATA=/var/lib/postgresql/data/db-files/
+        volumes:
+        - db-data:/var/lib/postgresql/data:rw
+        ports:
+        - "5432:5432"
+
+    blackfire:
+        image: blackfire/blackfire
+        container_name: blackfire
+        depends_on:
+        - php
+        environment:
+            BLACKFIRE_SERVER_ID: ${BLACKFIRE_SERVER_ID}
+            BLACKFIRE_SERVER_TOKEN: ${BLACKFIRE_SERVER_TOKEN}
+            BLACKFIRE_LOG_LEVEL: 4
+        ports:
+        - "8707:8707"
+volumes:
+    db-data: {}
